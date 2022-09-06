@@ -4,6 +4,8 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 
+import static java.util.Objects.requireNonNull;
+
 /**
  * {@link HeterogeneousMaxHolder} is a multi-type container that holds maximum values per each type. It's kind of a
  * key/value map, where the key is a type and the value is the maximum among all values of this type that were put.
@@ -29,12 +31,7 @@ public class HeterogeneousMaxHolder {
      * @return a smaller value among the provided value and the current maximum
      */
     public <T extends Comparable<? super T>> T put(Class<T> key, T value) {
-      T oldValue = (T) map.get(key);
-      if (oldValue == null || oldValue.compareTo(value) < 0) {
-        map.put(key, value);
-        return oldValue;
-      }
-      return value;
+      return put(key, value, Comparator.naturalOrder());
     }
 
     /**
@@ -50,10 +47,12 @@ public class HeterogeneousMaxHolder {
      * @return a smaller value among the provided value and the current maximum
      */
     public <T> T put(Class<T> key, T value, Comparator<? super T> comparator) {
-      T oldValue = (T) map.get(key);
-      if (oldValue == null || comparator.compare(oldValue, value) < 0) {
+      var currentMax = getMax(requireNonNull(key));
+      var nullSafeComparator = Comparator.nullsFirst(requireNonNull(comparator));
+      requireNonNull(value);
+      if (nullSafeComparator.compare(currentMax, value) < 0) {
         map.put(key, value);
-        return oldValue;
+        return currentMax;
       }
       return value;
 
@@ -66,6 +65,7 @@ public class HeterogeneousMaxHolder {
      * @return current max value or null
      */
   public <T> T getMax(Class<T> key) {
-    return (T) map.get(key);
+    requireNonNull(key);
+    return key.cast(map.get(key));
   }
 }
