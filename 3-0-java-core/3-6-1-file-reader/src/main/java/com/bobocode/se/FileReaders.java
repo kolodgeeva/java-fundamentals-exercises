@@ -1,11 +1,15 @@
 package com.bobocode.se;
 
-import com.bobocode.util.ExerciseNotCompletedException;
-
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Objects;
+import java.util.stream.Stream;
+
+import static java.util.stream.Collectors.joining;
 
 /**
  * {@link FileReaders} provides an API that allow to read whole file into a {@link String} by file name.
@@ -19,14 +23,27 @@ public class FileReaders {
      * @return string that holds whole file content
      */
     public static String readWholeFile(String fileName) {
-        StringBuilder builder = new StringBuilder();
-        try (FileReader reader = new FileReader("src/test/resources/" + fileName)){
-            while (reader.ready()) {
-                builder.append((char)reader.read());
-            }
-        } catch (IOException e) {
-            return null;
+        Path filePath = getPath(fileName);
+        try (Stream<String> fileLinesStream = openFileLinesStream(filePath)) {
+            return fileLinesStream.collect(joining("\n"));
         }
-        return builder.toString();
+    }
+
+    private static Path getPath(String fileName) {
+        Objects.requireNonNull(fileName);
+        URL fileUrl = FileReaders.class.getClassLoader().getResource(fileName);
+        try {
+            return Paths.get(fileUrl.toURI());
+        } catch (URISyntaxException e) {
+            throw new FileReaderException("Invalid file URL", e);
+        }
+    }
+
+    private static Stream<String> openFileLinesStream(Path filePath) {
+        try {
+            return Files.lines(filePath);
+        } catch (IOException e) {
+            throw new FileReaderException("Cannot create stream of file lines", e);
+        }
     }
 }
